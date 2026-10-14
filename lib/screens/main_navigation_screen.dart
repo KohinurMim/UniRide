@@ -3,6 +3,7 @@ import '../core/constants/app_colors.dart';
 
 import 'splash_screen.dart';
 import 'auth/login_screen.dart';
+import 'auth/signup_screen.dart';
 import 'student/student_home_screen.dart';
 import 'student/live_tracking_screen.dart';
 import 'student/routes_screen.dart';
@@ -25,7 +26,7 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  String currentScreen = 'Splash Screen';
+  String currentScreen = 'Sign Up Screen';
   int bottomNavIndex = 0; // 0: Home, 1: Routes, 2: Notifications, 3: Profile
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -157,7 +158,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     switch (currentScreen) {
       case 'Splash Screen':
         return SplashScreen(
-          onGetStarted: () => navigateToScreen('Login Screen'),
+          onGetStarted: () => navigateToScreen('Sign Up Screen'),
           onLoginPressed: () => navigateToScreen('Login Screen'),
         );
 
@@ -172,6 +173,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               navigateToScreen('Home Screen (Student)');
             }
           },
+          onSignUpPressed: () => navigateToScreen('Sign Up Screen'),
+        );
+
+      case 'Sign Up Screen':
+        return SignupScreen(
+          onSignUpSuccess: (role) {
+            if (role == 'Driver') {
+              navigateToScreen('Driver Dashboard');
+            } else if (role == 'Admin') {
+              navigateToScreen('Admin Panel');
+            } else {
+              navigateToScreen('Home Screen (Student)');
+            }
+          },
+          onLoginPressed: () => navigateToScreen('Login Screen'),
         );
 
       case 'Home Screen (Student)':

@@ -14,6 +14,7 @@ class ScreenSwitcherDrawer extends StatelessWidget {
   static const List<Map<String, dynamic>> allScreens = [
     {'title': 'Splash Screen', 'category': 'Auth', 'icon': Icons.space_dashboard_outlined},
     {'title': 'Login Screen', 'category': 'Auth', 'icon': Icons.login_rounded},
+    {'title': 'Sign Up Screen', 'category': 'Auth', 'icon': Icons.person_add_rounded},
     {'title': 'Home Screen (Student)', 'category': 'Student', 'icon': Icons.home_rounded},
     {'title': 'Live Tracking Map', 'category': 'Student', 'icon': Icons.map_rounded},
     {'title': 'Route & Stops Screen', 'category': 'Student', 'icon': Icons.alt_route_rounded},
@@ -57,7 +58,7 @@ class ScreenSwitcherDrawer extends StatelessWidget {
                   ),
                   SizedBox(height: 6),
                   Text(
-                    'Select any of the 14 UI screens:',
+                    'Select any of the 15 UI screens:',
                     style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                 ],

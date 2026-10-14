@@ -3,10 +3,12 @@ import '../../core/constants/app_colors.dart';
 
 class LoginScreen extends StatefulWidget {
   final Function(String role) onLoginSuccess;
+  final VoidCallback? onSignUpPressed;
 
   const LoginScreen({
     super.key,
     required this.onLoginSuccess,
+    this.onSignUpPressed,
   });
 
   @override
@@ -202,24 +204,32 @@ class _LoginScreenState extends State<LoginScreen> {
                 label: const Text('Login with Google'),
               ),
               const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    "Don't have an account? ",
-                    style: TextStyle(color: AppColors.textSecondary),
-                  ),
-                  GestureDetector(
-                    onTap: () {},
-                    child: const Text(
-                      'Sign Up',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: widget.onSignUpPressed,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Text(
+                          "Don't have an account? ",
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                        Text(
+                          'Sign Up',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
             ],
           ),
