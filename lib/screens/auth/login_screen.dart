@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_colors.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -19,11 +21,12 @@ class _LoginScreenState extends State<LoginScreen> {
   String selectedRole = 'Student';
   bool rememberMe = true;
   bool obscurePassword = true;
+  bool isLoading = false;
 
   final TextEditingController emailController =
       TextEditingController(text: 'student@university.edu');
   final TextEditingController passwordController =
-      TextEditingController(text: '••••••••');
+      TextEditingController(text: 'password123');
 
   void updateRole(String role) {
     setState(() {
@@ -36,6 +39,92 @@ class _LoginScreenState extends State<LoginScreen> {
         emailController.text = 'admin@university.edu';
       }
     });
+  }
+
+  Future<void> _handleLogin() async {
+    final String email = emailController.text.trim();
+    final String password = passwordController.text;
+
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid email address.'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
+
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your password.'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // 1. Firebase Authentication Sign-In
+      final UserCredential credential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // 2. Fetch User Profile & Role from Firestore
+      String userRole = selectedRole;
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(credential.user!.uid)
+            .get();
+        if (doc.exists && doc.data() != null && doc.data()!['role'] != null) {
+          userRole = doc.data()!['role'] as String;
+        }
+      } catch (_) {}
+
+      if (!mounted) return;
+      widget.onLoginSuccess(userRole);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
+      String errorMessage = e.message ?? 'Login failed.';
+      if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
+        errorMessage = 'No user found with this email or password.';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'The email address is formatted incorrectly.';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Login Error: ${e.toString()}'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -104,6 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 24),
               TextField(
                 controller: emailController,
+                keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.person_outline,
                       color: AppColors.textMuted),
@@ -173,10 +263,17 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                  widget.onLoginSuccess(selectedRole);
-                },
-                child: Text('Login as $selectedRole'),
+                onPressed: isLoading ? null : _handleLogin,
+                child: isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text('Login as $selectedRole'),
               ),
               const SizedBox(height: 20),
               const Row(
@@ -197,9 +294,11 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 20),
               OutlinedButton.icon(
-                onPressed: () {
-                  widget.onLoginSuccess(selectedRole);
-                },
+                onPressed: isLoading
+                    ? null
+                    : () {
+                        widget.onLoginSuccess(selectedRole);
+                      },
                 icon: const Icon(Icons.g_mobiledata, size: 28),
                 label: const Text('Login with Google'),
               ),
@@ -207,7 +306,7 @@ class _LoginScreenState extends State<LoginScreen> {
               MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: GestureDetector(
-                  onTap: widget.onSignUpPressed,
+                  onTap: isLoading ? null : widget.onSignUpPressed,
                   behavior: HitTestBehavior.opaque,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -242,7 +341,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final isSelected = selectedRole == role;
     return Expanded(
       child: GestureDetector(
-        onTap: () => updateRole(role),
+        onTap: isLoading ? null : () => updateRole(role),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),

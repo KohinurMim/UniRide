@@ -1,14 +1,71 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_colors.dart';
 import '../../widgets/occupancy_badge.dart';
 
-class StudentHomeScreen extends StatelessWidget {
+class StudentHomeScreen extends StatefulWidget {
   final Function(String screenName) onNavigate;
 
   const StudentHomeScreen({
     super.key,
     required this.onNavigate,
   });
+
+  @override
+  State<StudentHomeScreen> createState() => _StudentHomeScreenState();
+}
+
+class _StudentHomeScreenState extends State<StudentHomeScreen> {
+  String displayName = 'Arafat';
+  bool isLoadingName = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLoggedInUserName();
+  }
+
+  Future<void> _fetchLoggedInUserName() async {
+    try {
+      final User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // First set display name from auth if available
+        if (user.displayName != null && user.displayName!.isNotEmpty) {
+          final parts = user.displayName!.trim().split(' ');
+          setState(() {
+            displayName = parts.first;
+          });
+        }
+
+        // Fetch actual name from Firestore users collection using UID
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (doc.exists && doc.data() != null && doc.data()!['fullName'] != null) {
+          final String fullName = doc.data()!['fullName'].toString().trim();
+          if (fullName.isNotEmpty) {
+            final parts = fullName.split(' ');
+            if (mounted) {
+              setState(() {
+                displayName = parts.first;
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching user name: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoadingName = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,10 +80,10 @@ class StudentHomeScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Good Morning,',
                         style: TextStyle(
                           fontSize: 16,
@@ -34,8 +91,8 @@ class StudentHomeScreen extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Arafat',
-                        style: TextStyle(
+                        displayName,
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
@@ -46,7 +103,7 @@ class StudentHomeScreen extends StatelessWidget {
                   Row(
                     children: [
                       GestureDetector(
-                        onTap: () => onNavigate('Notifications'),
+                        onTap: () => widget.onNavigate('Notifications'),
                         child: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
@@ -79,7 +136,7 @@ class StudentHomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       GestureDetector(
-                        onTap: () => onNavigate('Settings / Profile'),
+                        onTap: () => widget.onNavigate('Settings / Profile'),
                         child: const CircleAvatar(
                           radius: 20,
                           backgroundColor: AppColors.primaryLight,
@@ -116,7 +173,7 @@ class StudentHomeScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
+                      color: Colors.black.withOpacity(0.04),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -245,7 +302,7 @@ class StudentHomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
-                      onPressed: () => onNavigate('Live Tracking Map'),
+                      onPressed: () => widget.onNavigate('Live Tracking Map'),
                       icon: const Icon(Icons.map_outlined, size: 18),
                       label: const Text('View on Map'),
                       style: ElevatedButton.styleFrom(
@@ -273,7 +330,7 @@ class StudentHomeScreen extends StatelessWidget {
                     icon: Icons.alt_route_rounded,
                     iconBg: const Color(0xFFEFF6FF),
                     iconColor: AppColors.primary,
-                    onTap: () => onNavigate('Favorite Routes'),
+                    onTap: () => widget.onNavigate('Favorite Routes'),
                   ),
                   _buildGridCard(
                     title: 'Live Map',
@@ -281,7 +338,7 @@ class StudentHomeScreen extends StatelessWidget {
                     icon: Icons.map,
                     iconBg: const Color(0xFFF0FDF4),
                     iconColor: AppColors.success,
-                    onTap: () => onNavigate('Live Tracking Map'),
+                    onTap: () => widget.onNavigate('Live Tracking Map'),
                   ),
                   _buildGridCard(
                     title: 'Feedback',
@@ -289,7 +346,7 @@ class StudentHomeScreen extends StatelessWidget {
                     icon: Icons.chat_bubble_outline_rounded,
                     iconBg: const Color(0xFFF0FDF4),
                     iconColor: AppColors.success,
-                    onTap: () => onNavigate('Feedback / Complaint'),
+                    onTap: () => widget.onNavigate('Feedback / Complaint'),
                   ),
                   _buildGridCard(
                     title: 'SOS',
@@ -297,7 +354,7 @@ class StudentHomeScreen extends StatelessWidget {
                     icon: Icons.sos_rounded,
                     iconBg: AppColors.dangerLight,
                     iconColor: AppColors.danger,
-                    onTap: () => onNavigate('SOS Button'),
+                    onTap: () => widget.onNavigate('SOS Button'),
                   ),
                 ],
               ),
@@ -325,7 +382,7 @@ class StudentHomeScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: Colors.black.withOpacity(0.03),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),

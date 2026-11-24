@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_colors.dart';
 
 class DriverDashboardScreen extends StatefulWidget {
@@ -15,6 +17,42 @@ class DriverDashboardScreen extends StatefulWidget {
 
 class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   bool isTripActive = false;
+  String driverName = 'Rafiq Ahmed';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDriverName();
+  }
+
+  Future<void> _fetchDriverName() async {
+    try {
+      final User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        if (user.displayName != null && user.displayName!.isNotEmpty) {
+          setState(() {
+            driverName = user.displayName!;
+          });
+        }
+
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (doc.exists && doc.data() != null && doc.data()!['fullName'] != null) {
+          final String name = doc.data()!['fullName'].toString().trim();
+          if (name.isNotEmpty && mounted) {
+            setState(() {
+              driverName = name;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching driver name: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +79,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
+                    color: Colors.black.withOpacity(0.04),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -58,17 +96,17 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
-                          'Rafiq Ahmed',
-                          style: TextStyle(
+                          driverName,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        SizedBox(height: 2),
-                        Text(
+                        const SizedBox(height: 2),
+                        const Text(
                           'Bus Driver',
                           style: TextStyle(
                             fontSize: 13,

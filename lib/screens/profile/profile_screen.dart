@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_colors.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   final VoidCallback onLogout;
   final Function(String screenName)? onNavigate;
 
@@ -10,6 +12,63 @@ class ProfileScreen extends StatelessWidget {
     required this.onLogout,
     this.onNavigate,
   });
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String userName = 'Arafat Rahman';
+  String userEmail = 'student@university.edu';
+  String userRole = 'Student';
+  String userIdNumber = '2024-98421';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        if (user.displayName != null && user.displayName!.isNotEmpty) {
+          userName = user.displayName!;
+        }
+        if (user.email != null && user.email!.isNotEmpty) {
+          userEmail = user.email!;
+        }
+      });
+
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data()!;
+          setState(() {
+            if (data['fullName'] != null) userName = data['fullName'];
+            if (data['email'] != null) userEmail = data['email'];
+            if (data['idNumber'] != null) userIdNumber = data['idNumber'];
+            if (data['role'] != null) {
+              final String rawRole = data['role'].toString();
+              userRole = rawRole[0].toUpperCase() + rawRole.substring(1);
+            }
+          });
+        }
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (_) {}
+    widget.onLogout();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,18 +101,18 @@ class ProfileScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Arafat Rahman',
-                          style: TextStyle(
+                        Text(
+                          userName,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
-                          'student@university.edu',
-                          style: TextStyle(
+                        Text(
+                          userEmail,
+                          style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
                           ),
@@ -68,9 +127,9 @@ class ProfileScreen extends StatelessWidget {
                                 color: AppColors.primaryLight,
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text(
-                                'Student',
-                                style: TextStyle(
+                              child: Text(
+                                userRole,
+                                style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.primary,
@@ -137,7 +196,7 @@ class ProfileScreen extends StatelessWidget {
                     icon: Icons.alt_route,
                     title: 'My Routes & Stops',
                     onTap: () {
-                      if (onNavigate != null) onNavigate!('Favorite Routes');
+                      if (widget.onNavigate != null) widget.onNavigate!('Favorite Routes');
                     },
                   ),
                   const Divider(height: 1, color: AppColors.divider),
@@ -145,7 +204,7 @@ class ProfileScreen extends StatelessWidget {
                     icon: Icons.notifications_none_rounded,
                     title: 'Notifications',
                     onTap: () {
-                      if (onNavigate != null) onNavigate!('Notifications');
+                      if (widget.onNavigate != null) widget.onNavigate!('Notifications');
                     },
                   ),
                   const Divider(height: 1, color: AppColors.divider),
@@ -167,7 +226,7 @@ class ProfileScreen extends StatelessWidget {
                     textColor: AppColors.danger,
                     iconColor: AppColors.danger,
                     showChevron: false,
-                    onTap: onLogout,
+                    onTap: _handleLogout,
                   ),
                 ],
               ),
@@ -217,9 +276,9 @@ class ProfileScreen extends StatelessWidget {
               'UniRide Digital Bus Pass',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const Text(
-              'Student ID: 2024-98421',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+            Text(
+              '$userRole ID: $userIdNumber',
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
             ),
             const SizedBox(height: 20),
             Container(
@@ -229,7 +288,7 @@ class ProfileScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.border),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
+                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
                 ],
               ),
               child: const Icon(
